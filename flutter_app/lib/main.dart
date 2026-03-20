@@ -114,7 +114,7 @@ class _FraudDetectionScreenState extends State<FraudDetectionScreen> {
   final List<Map<String, dynamic>> _log = [];
 
   // ── BACKEND URL — change to your server IP if running on device ────────────
-  static const _baseUrl = 'http://localhost:3000';
+  static const _baseUrl = 'https://veritrust-engine.onrender.com';
 
   // ── SCENARIO PRESETS ───────────────────────────────────────────────────────
   void _loadScenario(String type) {
