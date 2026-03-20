@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VeriTrust Engine — Fraud Detection System</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0e1a;--bg2:#111827;--bg3:#1a2235;--bg4:#1e2a3d;
+  --border:#2a3a5c;--border2:#3a4f72;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --green:#22c55e;--green2:#16a34a;--green-bg:#052e16;
+  --amber:#f59e0b;--amber2:#d97706;--amber-bg:#2d1a02;
+  --red:#ef4444;--red2:#dc2626;--red-bg:#2d0606;
+  --blue:#3b82f6;--blue2:#2563eb;
+  --purple:#a855f7;--cyan:#06b6d4;
+  --font:'JetBrains Mono',monospace;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;line-height:1.5;overflow-x:hidden}
+.app{display:grid;grid-template-columns:320px 1fr;min-height:100vh}
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:0;display:flex;flex-direction:column;overflow-y:auto}
+.main{display:flex;flex-direction:column;overflow-y:auto}
+.logo{padding:20px 20px 16px;border-bottom:1px solid var(--border)}
+.logo-title{font-size:15px;font-weight:700;color:#fff;letter-spacing:.05em}
+.logo-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.badge-live{background:#052e16;color:var(--green);border:1px solid var(--green2);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+.form-section{padding:16px 20px;border-bottom:1px solid var(--border)}
+.form-label{font-size:10px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;display:block}
+.form-group{margin-bottom:12px}
+.field-label{font-size:11px;color:var(--text2);margin-bottom:4px;display:flex;justify-content:space-between}
+.field-label span{color:var(--cyan);font-weight:700}
+input[type=range]{width:100%;accent-color:var(--blue);height:4px;cursor:pointer}
+input[type=text]{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:4px;font-family:var(--font);font-size:12px;outline:none}
+input[type=text]:focus{border-color:var(--blue)}
+.coord-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+.scenarios{padding:12px 20px;border-bottom:1px solid var(--border)}
+.scenario-btn{display:block;width:100%;text-align:left;background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:8px 12px;border-radius:4px;cursor:pointer;margin-bottom:6px;font-family:var(--font);font-size:11px;transition:all .15s}
+.scenario-btn:hover{border-color:var(--border2);color:var(--text);background:var(--bg4)}
+.scenario-btn .sc-name{font-weight:700;color:var(--text)}
+
+.submit-area{padding:16px 20px;margin-top:auto}
+.submit-btn{width:100%;background:var(--blue);color:#fff;border:none;padding:10px;border-radius:6px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.05em;transition:all .15s}
+.submit-btn:hover{background:var(--blue2);transform:translateY(-1px)}
+.submit-btn:active{transform:translateY(0)}
+
+.main-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.main-title{font-size:14px;font-weight:700;color:#fff}
+
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:16px 24px;border-bottom:1px solid var(--border)}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:12px 14px}
+.stat-val{font-size:22px;font-weight:700;color:#fff;line-height:1}
+.stat-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-top:4px}
+
+.result-area{padding:20px 24px;border-bottom:1px solid var(--border)}
+.result-card{background:var(--bg2);border-radius:8px;padding:20px;position:relative;overflow:hidden;border:1px solid var(--border)}
+.result-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.result-card.allow::before{background:var(--green)}
+.result-card.restrict::before{background:var(--amber)}
+.result-card.block::before{background:var(--red)}
+.result-card.idle::before{background:var(--border)}
+.result-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+.result-status{font-size:24px;font-weight:700;letter-spacing:.05em}
+.result-status.allow{color:var(--green)}
+.result-status.restrict{color:var(--amber)}
+.result-status.block{color:var(--red)}
+.result-status.idle{color:var(--text3)}
+.result-score-wrap{text-align:right}
+.result-score{font-size:40px;font-weight:700;color:#fff;line-height:1}
+.result-score-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em}
+
+.risk-bar-wrap{margin-bottom:16px}
+.risk-bar-track{height:8px;background:var(--bg4);border-radius:4px;overflow:hidden}
+.risk-bar-fill{height:100%;border-radius:4px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.risk-bar-marks{position:relative;height:16px;margin-top:4px}
+.risk-mark{position:absolute;font-size:9px;color:var(--text3);transform:translateX(-50%)}
+
+.factors{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.factor{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:8px 10px}
+.factor-name{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em}
+.factor-val{font-size:12px;font-weight:700;margin-top:2px}
+.factor-val.triggered{color:var(--red)}
+.factor-val.ok{color:var(--green)}
+
+.log-area{padding:0 24px 20px;flex:1}
+.log-header{display:flex;justify-content:space-between;align-items:center;margin:20px 0 10px}
+.log-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em}
+.log-clear{font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0}
+.log-clear:hover{color:var(--text)}
+.log-entries{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto}
+.log-entry{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:10px 12px;display:grid;grid-template-columns:auto 1fr auto auto;gap:8px;align-items:center;animation:slideIn .2s ease}
+@keyframes slideIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.log-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.log-dot.allow{background:var(--green)}
+.log-dot.restrict{background:var(--amber)}
+.log-dot.block{background:var(--red)}
+.log-user{font-size:12px;color:var(--text);font-weight:700}
+.log-detail{font-size:11px;color:var(--text3)}
+.log-score{font-size:12px;font-weight:700}
+.log-status{font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;text-transform:uppercase;letter-spacing:.06em}
+.log-status.allow{background:var(--green-bg);color:var(--green)}
+.log-status.restrict{background:var(--amber-bg);color:var(--amber)}
+.log-status.block{background:var(--red-bg);color:var(--red)}
+
+.cluster-area{padding:0 24px 20px}
+.cluster-card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:14px 16px}
+.cluster-header{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.cluster-id{font-size:11px;font-weight:700;color:var(--purple)}
+.cluster-users{display:flex;gap:6px;flex-wrap:wrap}
+.cluster-user{background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:3px 8px;font-size:11px;color:var(--text2)}
+.cluster-user.flagged{border-color:var(--red2);color:var(--red)}
+.cluster-badge{background:#1a0530;color:var(--purple);border:1px solid var(--purple);font-size:10px;padding:2px 7px;border-radius:3px;font-weight:700;margin-left:auto}
+
+.radar-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 24px 20px}
+.radar-card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:14px 16px}
+.radar-title{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+
+.empty{color:var(--text3);font-size:12px;text-align:center;padding:20px 0}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="app">
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <svg width="28" height="28" viewBox="0 0 28 28"><rect width="28" height="28" rx="6" fill="#1a2235"/><path d="M14 6L20 10V18L14 22L8 18V10Z" fill="none" stroke="#3b82f6" stroke-width="1.5"/><path d="M14 10L17 12V16L14 18L11 16V12Z" fill="#3b82f6" opacity=".5"/><circle cx="14" cy="14" r="2" fill="#3b82f6"/></svg>
+      <div>
+        <div class="logo-title">VeriTrust Engine</div>
+        <div class="logo-sub">Fraud Detection System v2.0</div>
+      </div>
+    </div>
+    <span class="badge badge-live">● LIVE</span>
+  </div>
+
+  <div class="form-section">
+    <div class="form-label">User Identity</div>
+    <div class="form-group">
+      <div class="field-label">User ID <span id="disp-uid">U123</span></div>
+      <input type="text" id="userId" value="U123" oninput="document.getElementById('disp-uid').textContent=this.value">
+    </div>
+    <div class="form-group">
+      <div class="field-label">Device ID <span id="disp-did">DEV-001</span></div>
+      <input type="text" id="deviceId" value="DEV-001" oninput="document.getElementById('disp-did').textContent=this.value">
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-label">Location</div>
+    <div class="coord-row">
+      <div class="form-group">
+        <div class="field-label">Latitude <span id="disp-lat">28.61</span></div>
+        <input type="range" id="lat" min="-90" max="90" step="0.01" value="28.61" oninput="document.getElementById('disp-lat').textContent=parseFloat(this.value).toFixed(2)">
+      </div>
+      <div class="form-group">
+        <div class="field-label">Longitude <span id="disp-lng">77.21</span></div>
+        <input type="range" id="lng" min="-180" max="180" step="0.01" value="77.21" oninput="document.getElementById('disp-lng').textContent=parseFloat(this.value).toFixed(2)">
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-label">Movement</div>
+    <div class="form-group">
+      <div class="field-label">Speed (km/h) <span id="disp-spd">30</span></div>
+      <input type="range" id="speed" min="0" max="300" value="30" oninput="document.getElementById('disp-spd').textContent=this.value">
+    </div>
+  </div>
+
+  <div class="scenarios">
+    <div class="form-label">Demo Scenarios</div>
+    <button class="scenario-btn" onclick="loadScenario('normal')"><span>✅</span> <span class="sc-name">Normal User</span> — Low risk, ALLOW</button>
+    <button class="scenario-btn" onclick="loadScenario('speed')"><span>⚠️</span> <span class="sc-name">High Speed</span> — Movement anomaly, RESTRICT</button>
+    <button class="scenario-btn" onclick="loadScenario('teleport')"><span>🚨</span> <span class="sc-name">Teleportation</span> — Impossible travel, BLOCK</button>
+    <button class="scenario-btn" onclick="loadScenario('device')"><span>💥</span> <span class="sc-name">Device Fraud Ring</span> — Shared device, BLOCK</button>
+  </div>
+
+  <div class="submit-area">
+    <button class="submit-btn" onclick="analyze()">▶ SIMULATE ACTIVITY</button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="main-header">
+    <div>
+      <div class="main-title">Risk Analysis Console</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px">Real-time fraud pattern detection</div>
+    </div>
+    <div style="font-size:11px;color:var(--text3)" id="clock"></div>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-val" id="stat-total">0</div>
+      <div class="stat-lbl">Total Requests</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--green)" id="stat-allow">0</div>
+      <div class="stat-lbl">Allowed</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--amber)" id="stat-restrict">0</div>
+      <div class="stat-lbl">Restricted</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--red)" id="stat-block">0</div>
+      <div class="stat-lbl">Blocked</div>
+    </div>
+  </div>
+
+  <div class="result-area">
+    <div class="result-card idle" id="result-card">
+      <div class="result-top">
+        <div>
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">Decision Engine</div>
+          <div class="result-status idle" id="result-status">WAITING...</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:6px" id="result-msg">Simulate an activity to see results</div>
+        </div>
+        <div class="result-score-wrap">
+          <div class="result-score" id="result-score">--</div>
+          <div class="result-score-lbl">Risk Score</div>
+        </div>
+      </div>
+      <div class="risk-bar-wrap">
+        <div class="risk-bar-track">
+          <div class="risk-bar-fill" id="risk-fill" style="width:0%;background:var(--text3)"></div>
+        </div>
+        <div class="risk-bar-marks">
+          <div class="risk-mark" style="left:0%">0</div>
+          <div class="risk-mark" style="left:30%;color:#22c55e">30</div>
+          <div class="risk-mark" style="left:70%;color:#f59e0b">70</div>
+          <div class="risk-mark" style="left:100%">100</div>
+        </div>
+      </div>
+      <div class="factors">
+        <div class="factor">
+          <div class="factor-name">Speed Check</div>
+          <div class="factor-val" id="f-speed">—</div>
+        </div>
+        <div class="factor">
+          <div class="factor-name">Teleportation</div>
+          <div class="factor-val" id="f-tele">—</div>
+        </div>
+        <div class="factor">
+          <div class="factor-name">Device Mismatch</div>
+          <div class="factor-val" id="f-device">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cluster-area" id="cluster-area" style="display:none">
+    <div class="cluster-card">
+      <div class="cluster-header">
+        <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="none" stroke="#a855f7" stroke-width="1.5"/><path d="M7 4V7L9 9" stroke="#a855f7" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span class="cluster-id" id="cluster-id">CLUSTER C1</span>
+        <span style="font-size:11px;color:var(--text3)">Fraud ring detected</span>
+        <span class="cluster-badge" id="cluster-badge">3 USERS</span>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Device <span id="cluster-device" style="color:var(--text)">DEV-SHARED</span> shared across users:</div>
+      <div class="cluster-users" id="cluster-users"></div>
+    </div>
+  </div>
+
+  <div class="log-area">
+    <div class="log-header">
+      <div class="log-title">Activity Log</div>
+      <button class="log-clear" onclick="clearLog()">Clear</button>
+    </div>
+    <div class="log-entries" id="log-entries">
+      <div class="empty" id="log-empty">No activity yet. Simulate to begin.</div>
+    </div>
+  </div>
+
+  <div class="radar-row">
+    <div class="radar-card">
+      <div class="radar-title">Risk Distribution</div>
+      <canvas id="distChart" height="110"></canvas>
+    </div>
+    <div class="radar-card">
+      <div class="radar-title">Decision Breakdown</div>
+      <canvas id="pieChart" height="110"></canvas>
+    </div>
+  </div>
+</main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const state = {
+  total:0,allow:0,restrict:0,block:0,
+  log:[],lastLocations:{},deviceUsers:{},riskHistory:[]
+};
+
+function loadScenario(type) {
+  const s = {
+    normal:  {uid:'U001',did:'DEV-001',lat:28.61,lng:77.21,spd:25},
+    speed:   {uid:'U002',did:'DEV-002',lat:19.07,lng:72.87,spd:140},
+    teleport:{uid:'U003',did:'DEV-003',lat:40.71,lng:-74.00,spd:30},
+    device:  {uid:'U005',did:'DEV-SHARED',lat:12.97,lng:77.59,spd:20}
+  };
+  const d = s[type];
+  document.getElementById('userId').value = d.uid;
+  document.getElementById('disp-uid').textContent = d.uid;
+  document.getElementById('deviceId').value = d.did;
+  document.getElementById('disp-did').textContent = d.did;
+  document.getElementById('lat').value = d.lat;
+  document.getElementById('disp-lat').textContent = d.lat.toFixed(2);
+  document.getElementById('lng').value = d.lng;
+  document.getElementById('disp-lng').textContent = d.lng.toFixed(2);
+  document.getElementById('speed').value = d.spd;
+  document.getElementById('disp-spd').textContent = d.spd;
+
+  if (type === 'device') {
+    if (!state.deviceUsers['DEV-SHARED']) state.deviceUsers['DEV-SHARED'] = new Set(['U004']);
+  }
+  if (type === 'teleport') {
+    state.lastLocations['U003'] = {lat:-33.86,lng:151.21,ts:Date.now()-120000};
+  }
+  setTimeout(() => analyze(), 100);
+}
+
+function haversine(lat1,lng1,lat2,lng2) {
+  const R=6371, d2r=Math.PI/180;
+  const dlat=(lat2-lat1)*d2r, dlng=(lng2-lng1)*d2r;
+  const a=Math.sin(dlat/2)**2+Math.cos(lat1*d2r)*Math.cos(lat2*d2r)*Math.sin(dlng/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function analyze() {
+  const uid = document.getElementById('userId').value.trim() || 'U000';
+  const did = document.getElementById('deviceId').value.trim() || 'DEV-000';
+  const lat = parseFloat(document.getElementById('lat').value);
+  const lng = parseFloat(document.getElementById('lng').value);
+  const spd = parseInt(document.getElementById('speed').value);
+  const now = Date.now();
+
+  let risk = 0;
+  const factors = {speed:false,tele:false,device:false};
+  const msgs = [];
+  let teleMsg = '';
+
+  // Rule 1: Speed Check
+  if (spd > 80) { risk += 30; factors.speed = true; msgs.push(`Speed ${spd}km/h exceeds threshold`); }
+
+  // Rule 2: Teleportation Detection
+  if (state.lastLocations[uid]) {
+    const prev = state.lastLocations[uid];
+    const dist = haversine(prev.lat, prev.lng, lat, lng);
+    const hrs = (now - prev.ts) / 3600000;
+    const maxSpd = dist / Math.max(hrs, 0.0001);
+    if (maxSpd > 900) {
+      risk += 30; factors.tele = true;
+      teleMsg = `${Math.round(dist)}km in ${Math.round(hrs*60)}min`;
+      msgs.push(`Impossible travel: ${teleMsg}`);
+    }
+  }
+  state.lastLocations[uid] = {lat,lng,ts:now};
+
+  // Rule 3: Device Multi-User Check
+  if (!state.deviceUsers[did]) state.deviceUsers[did] = new Set();
+  state.deviceUsers[did].add(uid);
+  if (state.deviceUsers[did].size > 1) {
+    risk += 40; factors.device = true;
+    msgs.push(`Device shared by ${state.deviceUsers[did].size} users`);
+  }
+
+  risk = Math.min(risk, 100);
+
+  // Decision Engine
+  let decision = 'allow';
+  if (risk >= 70) decision = 'block';
+  else if (risk >= 30) decision = 'restrict';
+
+  state.total++; state[decision]++;
+  state.riskHistory.push(risk);
+  if (state.riskHistory.length > 20) state.riskHistory.shift();
+
+  updateResult(risk, decision, factors, msgs, spd, teleMsg);
+  updateClusters(did, uid, decision);
+  addLog(uid, did, risk, decision);
+  updateStats();
+  updateCharts();
+}
+
+function updateResult(risk, decision, factors, msgs, spd, teleMsg) {
+  const card = document.getElementById('result-card');
+  const statusEl = document.getElementById('result-status');
+  card.className = 'result-card ' + decision;
+  statusEl.className = 'result-status ' + decision;
+  const labels = {allow:'✅ ALLOW',restrict:'⚠️ RESTRICT',block:'🔴 BLOCK'};
+  const defMsgs = {allow:'Transaction approved — all checks passed',restrict:'Suspicious — step-up verification required',block:'High-risk — request denied'};
+  statusEl.textContent = labels[decision];
+  document.getElementById('result-score').textContent = risk;
+  const fill = document.getElementById('risk-fill');
+  fill.style.width = risk + '%';
+  fill.style.background = decision==='allow'?'var(--green)':decision==='restrict'?'var(--amber)':'var(--red)';
+  document.getElementById('result-msg').textContent = msgs.length ? msgs.join(' · ') : defMsgs[decision];
+
+  const fSpd = document.getElementById('f-speed');
+  fSpd.className = 'factor-val ' + (factors.speed?'triggered':'ok');
+  fSpd.textContent = factors.speed ? `+30pts (${spd}km/h)` : 'Clear';
+
+  const fTele = document.getElementById('f-tele');
+  fTele.className = 'factor-val ' + (factors.tele?'triggered':'ok');
+  fTele.textContent = factors.tele ? `+30pts (${teleMsg})` : 'Clear';
+
+  const fDev = document.getElementById('f-device');
+  fDev.className = 'factor-val ' + (factors.device?'triggered':'ok');
+  fDev.textContent = factors.device ? '+40pts (shared)' : 'Clear';
+}
+
+function updateClusters(did, uid, decision) {
+  const users = state.deviceUsers[did];
+  const area = document.getElementById('cluster-area');
+  if (!users || users.size < 2) { area.style.display='none'; return; }
+  area.style.display = 'block';
+  const arr = [...users];
+  const cid = 'C' + (Math.abs(did.split('').reduce((a,c)=>a+c.charCodeAt(0),0))%99+1);
+  document.getElementById('cluster-id').textContent = 'CLUSTER ' + cid;
+  document.getElementById('cluster-device').textContent = did;
+  document.getElementById('cluster-badge').textContent = arr.length + ' USERS';
+  document.getElementById('cluster-users').innerHTML = arr.map(u=>`<span class="cluster-user flagged">${u}</span>`).join('');
+}
+
+function addLog(uid, did, risk, decision) {
+  const empty = document.getElementById('log-empty');
+  if (empty) empty.style.display = 'none';
+  const entries = document.getElementById('log-entries');
+  const div = document.createElement('div');
+  div.className = 'log-entry';
+  const time = new Date().toLocaleTimeString('en-US',{hour12:false});
+  const scoreColor = decision==='allow'?'var(--green)':decision==='restrict'?'var(--amber)':'var(--red)';
+  div.innerHTML = `
+    <div class="log-dot ${decision}"></div>
+    <div><div class="log-user">${uid}</div><div class="log-detail">${did} · ${time}</div></div>
+    <div class="log-score" style="color:${scoreColor}">${risk}</div>
+    <div class="log-status ${decision}">${decision.toUpperCase()}</div>`;
+  entries.insertBefore(div, entries.firstChild);
+  state.log.push({uid,did,risk,decision});
+  if (state.log.length > 50) entries.lastChild && entries.removeChild(entries.lastChild);
+}
+
+function clearLog() {
+  document.getElementById('log-entries').innerHTML = '<div class="empty" id="log-empty">No activity yet. Simulate to begin.</div>';
+  Object.assign(state,{total:0,allow:0,restrict:0,block:0,log:[],lastLocations:{},deviceUsers:{},riskHistory:[]});
+  document.getElementById('cluster-area').style.display = 'none';
+  document.getElementById('result-card').className = 'result-card idle';
+  document.getElementById('result-status').className = 'result-status idle';
+  document.getElementById('result-status').textContent = 'WAITING...';
+  document.getElementById('result-msg').textContent = 'Simulate an activity to see results';
+  document.getElementById('result-score').textContent = '--';
+  document.getElementById('risk-fill').style.width = '0%';
+  ['f-speed','f-tele','f-device'].forEach(id=>{
+    document.getElementById(id).textContent='—';
+    document.getElementById(id).className='factor-val';
+  });
+  updateStats(); updateCharts();
+}
+
+function updateStats() {
+  document.getElementById('stat-total').textContent = state.total;
+  document.getElementById('stat-allow').textContent = state.allow;
+  document.getElementById('stat-restrict').textContent = state.restrict;
+  document.getElementById('stat-block').textContent = state.block;
+}
+
+let distChart, pieChart;
+function initCharts() {
+  const color = '#94a3b8', grid = '#2a3a5c';
+  distChart = new Chart(document.getElementById('distChart'), {
+    type:'bar',
+    data:{
+      labels:Array.from({length:10},(_,i)=>i*10+'-'+(i*10+10)),
+      datasets:[{label:'Risk Score',data:Array(10).fill(0),backgroundColor:'#3b82f6',borderRadius:2,borderSkipped:false}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{color,font:{size:9}},grid:{color:grid}},y:{ticks:{color,font:{size:9}},grid:{color:grid},beginAtZero:true}}}
+  });
+  pieChart = new Chart(document.getElementById('pieChart'), {
+    type:'doughnut',
+    data:{
+      labels:['Allow','Restrict','Block'],
+      datasets:[{data:[0,0,0],backgroundColor:['#22c55e','#f59e0b','#ef4444'],borderWidth:0,hoverOffset:2}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'right',labels:{color,font:{size:10},boxWidth:10,padding:8}}},cutout:'60%'}
+  });
+}
+
+function updateCharts() {
+  const bins = Array(10).fill(0);
+  state.riskHistory.forEach(r=>{const b=Math.min(Math.floor(r/10),9);bins[b]++;});
+  distChart.data.datasets[0].data = bins;
+  distChart.update('none');
+  pieChart.data.datasets[0].data = [state.allow,state.restrict,state.block];
+  pieChart.update('none');
+}
+
+function updateClock() {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US',{hour12:false}) + ' IST';
+}
+
+initCharts();
+updateClock();
+setInterval(updateClock, 1000);
+</script>
+</body>
+</html>
